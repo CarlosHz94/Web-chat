@@ -22,7 +22,8 @@
 	<script src="https://code.jquery.com/jquery-1.11.1.js"></script>
 	<script>
 		$(function () {
-			var userName = "";
+			var userName;
+			var colour;
 			var socket = io();
 			$('form').submit(function(e){
 				e.preventDefault(); // prevents page reloading
@@ -30,19 +31,32 @@
 				$('#m').val('');
 				return false;
 			});
-			socket.on('chat message', function(msg, time){
-				console.log(time);
-				$('#messages').append($('<li>').text(time[0] + ":" + time[1] + " " + userName + ": ").append($('<b>').text(msg)));
+			socket.on('chat message', function(msg, time, username, col){
+				if(username === userName){
+					$('#messages').append($('<li>').append($('<b>').text(time[0] + ":" + time[1] + " ").append($('<span style="color:' + colour + ';">').text(username).append($('<span style="color:#000;">').text(": " + msg)))));
+				}else{
+					$('#messages').append($('<li>').text(time[0] + ":" + time[1] + " ").append($('<span style="color:' + col + ';">').text(username).append($('<span style="color:#000;">').text(": " + msg))));
+				}
 			});
-			socket.on('genUser', function(username){
+			socket.on('genUser', function(username, col){
 				userName = username;
+				colour = col;
 				document.getElementById("userIdentifier").innerHTML = "Welcome, " + userName;
-				$('#users').append($('<li>').text(userName));
 			});
 			socket.on('chatlog', function(time, username, msg){
-		
-				$('#messages').append($('<li>').text(time[0] + ":" + time[1] + " " + username + ": ").append($('<b>').text(msg)));
+				$('#messages').append($('<li>').text(time[0] + ":" + time[1] + " " + username + ": ").append(msg));
 			});
+			socket.on('updateUsers', function(userslist){
+				document.getElementById("users").innerHTML = "";
+				var i;
+				for(i = 0; i < userslist.length; i++){
+					$('#users').append($('<li>').text(userslist[i]));
+				}
+			});
+			socket.on('serverMessage', function(message){
+				$('#messages').append($('<li style="color:red; font-style: italic;">').text(message));
+			});
+			
 		});
 	</script>
 	
