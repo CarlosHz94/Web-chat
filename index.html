@@ -23,7 +23,6 @@
 	<script>
 		$(function () {
 			var userName;
-			var colour;
 			var socket = io();
 			$('form').submit(function(e){
 				e.preventDefault(); // prevents page reloading
@@ -31,20 +30,19 @@
 				$('#m').val('');
 				return false;
 			});
-			socket.on('chat message', function(msg, time, username, col){
+			socket.on('chat message', function(msg, time, username, colour){
 				if(username === userName){
 					$('#messages').append($('<li>').append($('<b>').text(time[0] + ":" + time[1] + " ").append($('<span style="color:' + colour + ';">').text(username).append($('<span style="color:#000;">').text(": " + msg)))));
 				}else{
-					$('#messages').append($('<li>').text(time[0] + ":" + time[1] + " ").append($('<span style="color:' + col + ';">').text(username).append($('<span style="color:#000;">').text(": " + msg))));
+					$('#messages').append($('<li>').text(time[0] + ":" + time[1] + " ").append($('<span style="color:' + colour + ';">').text(username).append($('<span style="color:#000;">').text(": " + msg))));
 				}
 			});
-			socket.on('genUser', function(username, col){
+			socket.on('genUser', function(username){
 				userName = username;
-				colour = col;
 				document.getElementById("userIdentifier").innerHTML = "Welcome, " + userName;
 			});
-			socket.on('chatlog', function(time, username, msg){
-				$('#messages').append($('<li>').text(time[0] + ":" + time[1] + " " + username + ": ").append(msg));
+			socket.on('chatlog', function(time, username, msg, colour){
+				$('#messages').append($('<li>').text(time[0] + ":" + time[1] + " ").append($('<span style="color:' + colour + ';">').text(username).append($('<span style="color:#000;">').text(": " + msg))));
 			});
 			socket.on('updateUsers', function(userslist){
 				document.getElementById("users").innerHTML = "";

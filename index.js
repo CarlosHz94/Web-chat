@@ -107,8 +107,8 @@ function executeCommand(command, argument, client){
 			io.to(client).emit('serverMessage', "Your user colour is now '" + argument + "'");
 			break;
 		case "/help":
-			io.to(client).emit('serverMessage', "use /nick <new nickname> to change your username");
-			io.to(client).emit('serverMessage', "use /nickColor <RRGGBB> to change your username color");
+			io.to(client).emit('serverMessage', "use /nick <new_nickname> to change your username");
+			io.to(client).emit('serverMessage', "use /nickColor <#RRGGBB> to change your username color");
 			break;
 		default:
 			io.to(client).emit('serverMessage', "This is not a valid command");
