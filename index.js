@@ -12,6 +12,7 @@ var chatlog = {};
 chatlog.msgs = [];
 chatlog.user = [];
 chatlog.time = [];
+chatlog.colour = [];
 chatlog.count = 0;
 
 var clients = [];
@@ -24,7 +25,9 @@ io.on('connection', function(socket){
 	clients.push(socket.id);
 	updateChatlog(clients[clients.length-1]);
 	addUser(genUsername());
-	io.to(clients[clients.length-1]).emit('genUser', userList.userName[userList.userName.length-1], userList.colour[userList.colour.length-1]);
+	io.to(clients[clients.length-1]).emit('genUser', userList.userName[userList.userName.length-1]);
+	
+	io.to(clients[clients.length-1]).emit('serverMessage', "Use the command /help in order to view the list of commands");
 	
 	io.emit('updateUsers', userList.userName);
 	
@@ -41,6 +44,7 @@ io.on('connection', function(socket){
 			chatlog.msgs.push(msg);
 			chatlog.user.push(userName);
 			chatlog.time.push(time);
+			chatlog.colour.push(userList.colour[index]);
 			chatlog.count++;
 		}
 	});
@@ -57,14 +61,14 @@ io.on('connection', function(socket){
 });
 
 http.listen(port, function(){
-	console.log('listening on *:3000');
+	console.log('listening on *: ' + port);
 });
 
 function updateChatlog(client){
 	var i;
 	var startIndex = 0;
 	for(i = 0; i < 250	 && startIndex < chatlog.count; i++, startIndex++){
-		io.to(client).emit('chatlog', chatlog.time[startIndex], chatlog.user[startIndex], chatlog.msgs[startIndex]);
+		io.to(client).emit('chatlog', chatlog.time[startIndex], chatlog.user[startIndex], chatlog.msgs[startIndex], chatlog.colour[startIndex]);
 	}
 }
 
@@ -87,10 +91,12 @@ function executeCommand(command, argument, client){
 			var index = userList.userName.indexOf(argument);
 			console.log("index = " + index);
 			if(index === -1){
+				var prevName = userList.userName[clientIndex];
 				userList.userName[clientIndex] = argument;
 				io.emit('updateUsers', userList.userName);
 				io.to(clients[clientIndex]).emit('genUser', userList.userName[clientIndex], userList.colour[clientIndex]);
-				io.to(client).emit('serverMessage', "Your username is now '" + argument + "'");
+				//io.to(client).emit('serverMessage', "Your username is now '" + argument + "'");
+				io.emit('serverMessage', "'" + prevName + "'" + " has changed his name to '" + argument + "'");
 			}else{
 				io.to(client).emit('serverMessage', "This username is already taken");
 			}
@@ -99,6 +105,10 @@ function executeCommand(command, argument, client){
 			userList.colour[clientIndex] = argument;
 			io.to(clients[clientIndex]).emit('genUser', userList.userName[clientIndex], userList.colour[clientIndex]);
 			io.to(client).emit('serverMessage', "Your user colour is now '" + argument + "'");
+			break;
+		case "/help":
+			io.to(client).emit('serverMessage', "use /nick <new nickname> to change your username");
+			io.to(client).emit('serverMessage', "use /nickColor <RRGGBB> to change your username color");
 			break;
 		default:
 			io.to(client).emit('serverMessage', "This is not a valid command");
