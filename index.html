@@ -1,75 +1,125 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-	<head>
-		<title>Socket.IO chat</title>
-		<style>
-			#webchat{border-radius: 5px; position: absolute; margin: 20px; background-color: #afb8c6; min-width: 700px;}
-			#chatbox{ float: left; margin: 25px; width: 450px; height: 300px; border: 1px solid black; overflow: auto; background-color:#e5eefc; display: flex; flex-direction: column-reverse;}
-			#usersbox{float: left; margin: 25px; width: 150px; height: 300px; border: 1px solid black; overflow: auto;background-color:#e5eefc; display: flex; flex-direction: column-reverse;}
-			#userIdentifier{padding-top: 20px; padding-left: 25px;}
-			* { margin: 0; padding: 0; box-sizing: border-box; }
-			form {  padding: 3px; position: w; bottom: 0; width: 100%; }
-			body { font: 13px Helvetica, Arial; }
-			form input { border: 1px solid black; padding: 10px; width: 90%; margin-right: .5%; }
-			form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
-			#messages { list-style-type: none; margin: 0; padding: 0; }
-			#messages li { padding: 5px 10px; }
-			
-		</style>
-	</head>
-	
-	<script src="/socket.io/socket.io.js"></script>
-	<script src="https://code.jquery.com/jquery-1.11.1.js"></script>
-	<script>
-		$(function () {
-			var userName;
-			var socket = io();
-			$('form').submit(function(e){
-				e.preventDefault(); // prevents page reloading
-				socket.emit('chat message', $('#m').val(), userName);
-				$('#m').val('');
-				return false;
-			});
-			socket.on('chat message', function(msg, time, username, colour){
-				if(username === userName){
-					$('#messages').append($('<li>').append($('<b>').text(time[0] + ":" + time[1] + " ").append($('<span style="color:' + colour + ';">').text(username).append($('<span style="color:#000;">').text(": " + msg)))));
-				}else{
-					$('#messages').append($('<li>').text(time[0] + ":" + time[1] + " ").append($('<span style="color:' + colour + ';">').text(username).append($('<span style="color:#000;">').text(": " + msg))));
-				}
-			});
-			socket.on('genUser', function(username){
-				userName = username;
-				document.getElementById("userIdentifier").innerHTML = "Welcome, " + userName;
-			});
-			socket.on('chatlog', function(time, username, msg, colour){
-				$('#messages').append($('<li>').text(time[0] + ":" + time[1] + " ").append($('<span style="color:' + colour + ';">').text(username).append($('<span style="color:#000;">').text(": " + msg))));
-			});
-			socket.on('updateUsers', function(userslist){
-				document.getElementById("users").innerHTML = "";
-				var i;
-				for(i = 0; i < userslist.length; i++){
-					$('#users').append($('<li>').text(userslist[i]));
-				}
-			});
-			socket.on('serverMessage', function(message){
-				$('#messages').append($('<li style="color:red; font-style: italic;">').text(message));
-			});
-			
-		});
-	</script>
-	
-	<body>
-		<div id="webchat">
-			<div id = "userIdentifier"></div>
-			<div id="chatbox">
-				<ul id="messages"></ul>
-			</div>
-			<div id="usersbox">
-				<ul id = "users"></ul>
-			</div>
-			<form action="">
-				<input id="m" autocomplete="off" /><button>Send</button>
-			</form>
-		</div>
-	</body>
+    <head>
+        <title>Quan's Chat Server</title>
+        <!-- Scripts -->
+        <!-- socket.io -->
+        <script src="/socket.io/socket.io.js"></script>
+        <!-- JQuery & Bootstrap4 -->
+        <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+        <!-- Client -->
+        <script type="text/javascript">
+            $(document).ready(function(){
+                var socket = io();
+                var userlist = {};
+                var identity = {};
+                // Initializing sequence
+                // Receive identity
+                socket.on('identity', function(user){
+                    identity =  JSON.parse(user);
+                    $('#Name-Display').html('You are <font color="'+identity['color']+'">'+identity['name']+'</font>');
+                    $('#chat-name').html('<font color="'+identity['color']+'">'+identity['name']+'</font>');
+                    var now = new Date();
+                    now.setTime(now.getTime() + (24*60*60*1000)); // valid for 1 day
+                    cookie_string = 'chat-name=' + identity['name'] +'; expires=' + now.toUTCString() + '; path=/';
+                    document.cookie = cookie_string;
+                    cookie_string = 'chat-color=' + identity['color'] +'; expires=' + now.toUTCString() + '; path=/';
+                    document.cookie = cookie_string;
+                    // debug
+                    //var savedcookie = document.cookie;
+                    //console.log(decodeURIComponent(oldcookie));
+                })
+
+
+                // Update User List
+                socket.on('Update User List', function(users){
+                    userlist = JSON.parse(users);
+                    $('#userlist').html('');
+                    for(i = 1; userlist[('User'+i)]; i++){
+                        var key = 'User'+i;
+                        if(userlist[key]['connected']){
+                            // ADD user to list if connected
+                            $('#userlist').append($('<li class="list-group-item" style="word-wrap: break-word;">').html('<font color="' + userlist[key]['color'] + '">' + userlist[key]['name'] + '</font>'))
+                        }
+                    }
+
+                })
+                // Receive chat log
+                socket.on('chat log', function(msg){
+                    $('#messages').html(msg);
+                })
+                // basic chat msg communication
+                $('#msg').on('keyup',function(e){
+                    if (e.keyCode == 13){
+                        var cmd = /^\//g;
+                        var msg = $('#msg').val();
+                        // debug
+                        console.log($('#msg').val());
+                        // check if command
+                        if(cmd.test(msg)){
+                            socket.emit('command', msg);
+                        }// not command
+                        else socket.emit('chat message', $('#msg').val());
+                        // reset value
+                        $('#msg').val('');
+                    }
+                    
+                })
+                socket.on('chat message', function(msg){
+                    $('#messages').append($('<li class="list-group-item" style="word-wrap: break-word;">').html(msg))
+                })
+                socket.on('system message', function(msg){
+                    $('#messages').append($('<li class="list-group-item" style="word-wrap: break-word;">').html('<font color="red">' + msg + '</font>'))
+                })
+
+            })
+        </script>
+        <!-- Styling -->
+        <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+        }
+        body{
+            height: 100vh;
+        }
+        #messages { list-style-type: none; margin: 0; padding: 0; }
+        #messages li:nth-child(odd) { background: #eee; }
+        #content-row { height: calc(80% - 80px); }
+        </style>
+    </head>
+    <body>
+        <div style="height: 100%; display: flex;">
+            <div class="container-fluid mw-100 mh-100">
+                <h1 class="display-4" id="Name-Display"></h1>
+                <div class="row">
+                    <div class="col-8">
+                        <h6>History</h6>
+                    </div>
+                    <div class="col-4">
+                        <h6>Users</h6>
+                    </div>
+                </div>
+                <div class="row" id="content-row">
+                    <div class="col-8" style="height: 100%">
+                        <ul id="messages" class="list-group overflow-auto mh-100 d-flex flex-column"></ul>
+                    </div>
+                    <div class="col-4" style="height:100%">
+                        <ul id="userlist" class="list-group overflow-auto mh-100 d-flex flex-column"></ul>
+                    </div>
+                </div>
+                <div class="row fixed-bottom mr-3 ml-3 mb-1">
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text" id="chat-name"></span> 
+                        </div>
+                        <input type="text" id="msg" class="form-control" placeholder="Enter to chat">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
 </html>

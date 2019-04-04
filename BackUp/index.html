@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Socket.IO chat</title>
+		<style>
+			#webchat{border-radius: 5px; position: absolute; margin: 20px; background-color: #afb8c6; min-width: 700px;}
+			#chatbox{ float: left; margin: 25px; width: 450px; height: 300px; border: 1px solid black; overflow: auto; background-color:#e5eefc; display: flex; flex-direction: column-reverse;}
+			#usersbox{float: left; margin: 25px; width: 150px; height: 300px; border: 1px solid black; overflow: auto;background-color:#e5eefc; display: flex; flex-direction: column-reverse;}
+			#userIdentifier{padding-top: 20px; padding-left: 25px;}
+			* { margin: 0; padding: 0; box-sizing: border-box; }
+			form {  padding: 3px; position: w; bottom: 0; width: 100%; }
+			body { font: 13px Helvetica, Arial; }
+			form input { border: 1px solid black; padding: 10px; width: 90%; margin-right: .5%; }
+			form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+			#messages { list-style-type: none; margin: 0; padding: 0; }
+			#messages li { padding: 5px 10px; }
+			
+		</style>
+	</head>
+	
+	<script src="/socket.io/socket.io.js"></script>
+	<script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+	<script>
+		$(function () {
+			var userName;
+			var socket = io();
+			$('form').submit(function(e){
+				e.preventDefault(); // prevents page reloading
+				socket.emit('chat message', $('#m').val(), userName);
+				$('#m').val('');
+				return false;
+			});
+			socket.on('chat message', function(msg, time, username, colour){
+				if(username === userName){
+					$('#messages').append($('<li>').append($('<b>').text(time[0] + ":" + time[1] + " ").append($('<span style="color:' + colour + ';">').text(username).append($('<span style="color:#000;">').text(": " + msg)))));
+				}else{
+					$('#messages').append($('<li>').text(time[0] + ":" + time[1] + " ").append($('<span style="color:' + colour + ';">').text(username).append($('<span style="color:#000;">').text(": " + msg))));
+				}
+			});
+			socket.on('genUser', function(username){
+				userName = username;
+				document.getElementById("userIdentifier").innerHTML = "Welcome, " + userName;
+			});
+			socket.on('chatlog', function(time, username, msg, colour){
+				$('#messages').append($('<li>').text(time[0] + ":" + time[1] + " ").append($('<span style="color:' + colour + ';">').text(username).append($('<span style="color:#000;">').text(": " + msg))));
+			});
+			socket.on('updateUsers', function(userslist){
+				document.getElementById("users").innerHTML = "";
+				var i;
+				for(i = 0; i < userslist.length; i++){
+					$('#users').append($('<li>').text(userslist[i]));
+				}
+			});
+			socket.on('serverMessage', function(message){
+				$('#messages').append($('<li style="color:red; font-style: italic;">').text(message));
+			});
+			
+		});
+	</script>
+	
+	<body>
+		<div id="webchat">
+			<div id = "userIdentifier"></div>
+			<div id="chatbox">
+				<ul id="messages"></ul>
+			</div>
+			<div id="usersbox">
+				<ul id = "users"></ul>
+			</div>
+			<form action="">
+				<input id="m" autocomplete="off" /><button>Send</button>
+			</form>
+		</div>
+	</body>
+</html>
